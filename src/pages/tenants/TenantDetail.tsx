@@ -64,8 +64,8 @@ function groupFields(fields: SchemaField[]): FieldGroup[] {
 	const groups = new Map<string, SchemaField[]>();
 	for (const field of fields) {
 		let group: string;
-		if (hasTags) {
-			group = field.tags?.[0] ?? "";
+		if (hasTags && field.tags && field.tags.length > 0) {
+			group = field.tags[0];
 		} else {
 			const parts = field.path?.split(".") ?? [];
 			group = parts.length > 1 ? parts[0] : "";
@@ -296,60 +296,54 @@ export function TenantDetail() {
 							</p>
 						</div>
 						<div className="flex gap-2">
-							{canEditConfig(auth.role) && (
-								<>
-									{!editing ? (
+							{canEditConfig(auth.role) &&
+								(!editing ? (
+									<button
+										type="button"
+										onClick={() => setEditing(true)}
+										className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+									>
+										{label("config.edit")}
+									</button>
+								) : (
+									<button
+										type="button"
+										onClick={handleCancelEdit}
+										className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+									>
+										{label("config.cancelEdit")}
+									</button>
+								))}
+							{canManageTenants(auth.role) &&
+								(!showDeleteConfirm ? (
+									<button
+										type="button"
+										onClick={() => setShowDeleteConfirm(true)}
+										className="rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+									>
+										{label("tenant.delete")}
+									</button>
+								) : (
+									<>
 										<button
 											type="button"
-											onClick={() => setEditing(true)}
-											className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+											onClick={() => deleteMutation.mutate()}
+											disabled={deleteMutation.isPending}
+											className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
 										>
-											{label("config.edit")}
+											{deleteMutation.isPending
+												? label("tenant.deleting")
+												: label("tenant.confirmDelete")}
 										</button>
-									) : (
 										<button
 											type="button"
-											onClick={handleCancelEdit}
+											onClick={() => setShowDeleteConfirm(false)}
 											className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
 										>
-											{label("config.cancelEdit")}
+											{label("common.cancel")}
 										</button>
-									)}
-								</>
-							)}
-							{canManageTenants(auth.role) && (
-								<>
-									{!showDeleteConfirm ? (
-										<button
-											type="button"
-											onClick={() => setShowDeleteConfirm(true)}
-											className="rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
-										>
-											{label("tenant.delete")}
-										</button>
-									) : (
-										<>
-											<button
-												type="button"
-												onClick={() => deleteMutation.mutate()}
-												disabled={deleteMutation.isPending}
-												className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-											>
-												{deleteMutation.isPending
-													? label("tenant.deleting")
-													: label("tenant.confirmDelete")}
-											</button>
-											<button
-												type="button"
-												onClick={() => setShowDeleteConfirm(false)}
-												className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-											>
-												{label("common.cancel")}
-											</button>
-										</>
-									)}
-								</>
-							)}
+									</>
+								))}
 						</div>
 					</div>
 
@@ -436,20 +430,33 @@ function FieldRow({
 	onLock,
 	onUnlock,
 }: FieldRowProps) {
-	const disabled = !editing || isLocked || field.readOnly;
+	const hasValue = value !== "";
+	const isWriteOnceLocked = field.writeOnce && hasValue;
+	const disabled = !editing || isLocked || field.readOnly || isWriteOnceLocked;
 
 	return (
 		<div
 			className={`flex items-start gap-4 rounded border p-3 ${
-				isDirty
-					? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/30"
-					: "border-gray-200 dark:border-gray-800"
+				field.deprecated
+					? "border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20"
+					: isDirty
+						? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/30"
+						: "border-gray-200 dark:border-gray-800"
 			}`}
 		>
 			<TypeBadge type={field.type} />
 			<div className="min-w-0 flex-1">
 				<div className="mb-1 flex items-center gap-2">
-					<span className="font-mono text-sm font-medium">{field.path}</span>
+					{field.title ? (
+						<>
+							<span className="text-sm font-medium">{field.title}</span>
+							<span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+								{field.path}
+							</span>
+						</>
+					) : (
+						<span className="font-mono text-sm font-medium">{field.path}</span>
+					)}
 					{isDirty && <span className="h-2 w-2 rounded-full bg-blue-500" title="Modified" />}
 					{field.nullable && (
 						<span className="text-xs text-gray-400 dark:text-gray-500">
@@ -461,9 +468,34 @@ function FieldRow({
 							{label("config.locked")}
 						</span>
 					)}
+					{field.deprecated && (
+						<span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+							Deprecated
+						</span>
+					)}
+					{field.readOnly && (
+						<span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+							Read-only
+						</span>
+					)}
+					{field.writeOnce && (
+						<span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+							{hasValue ? "Immutable" : "Write-once"}
+						</span>
+					)}
+					{field.sensitive && (
+						<span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
+							Sensitive
+						</span>
+					)}
 				</div>
 				{field.description && (
 					<p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{field.description}</p>
+				)}
+				{field.deprecated && field.redirectTo && (
+					<p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
+						Use <span className="font-mono">{field.redirectTo}</span> instead
+					</p>
 				)}
 				{editing ? (
 					<TypedInput
@@ -475,34 +507,31 @@ function FieldRow({
 						disabled={disabled}
 					/>
 				) : (
-					<ReadOnlyValue value={value} fieldType={field.type} />
+					<ReadOnlyValue value={value} fieldType={field.type} sensitive={field.sensitive} />
 				)}
 			</div>
 			{editing && (
 				<div className="flex items-center gap-1 pt-1">
-					{showLocks && (
-						<>
-							{isLocked ? (
-								<button
-									type="button"
-									onClick={onUnlock}
-									title="Unlock"
-									className="rounded p-1 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
-								>
-									<LockIcon />
-								</button>
-							) : (
-								<button
-									type="button"
-									onClick={onLock}
-									title="Lock"
-									className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800"
-								>
-									<UnlockIcon />
-								</button>
-							)}
-						</>
-					)}
+					{showLocks &&
+						(isLocked ? (
+							<button
+								type="button"
+								onClick={onUnlock}
+								title="Unlock"
+								className="rounded p-1 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
+							>
+								<LockIcon />
+							</button>
+						) : (
+							<button
+								type="button"
+								onClick={onLock}
+								title="Lock"
+								className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800"
+							>
+								<UnlockIcon />
+							</button>
+						))}
 					{isDirty && (
 						<button
 							type="button"
@@ -519,13 +548,24 @@ function FieldRow({
 	);
 }
 
-function ReadOnlyValue({ value, fieldType }: { value: string; fieldType?: FieldType }) {
+function ReadOnlyValue({
+	value,
+	fieldType,
+	sensitive,
+}: {
+	value: string;
+	fieldType?: FieldType;
+	sensitive?: boolean;
+}) {
 	if (!value) {
 		return (
 			<span className="text-sm text-gray-300 italic dark:text-gray-600">
 				{label("config.notSet")}
 			</span>
 		);
+	}
+	if (sensitive) {
+		return <span className="text-sm text-gray-400 dark:text-gray-500">{"••••••••"}</span>;
 	}
 	if (fieldType === "FIELD_TYPE_BOOL") {
 		return (

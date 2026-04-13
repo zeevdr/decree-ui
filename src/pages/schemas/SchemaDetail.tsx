@@ -191,8 +191,8 @@ function groupFields(fields: SchemaField[]): FieldGroup[] {
 
 	for (const field of fields) {
 		let group: string;
-		if (hasTags) {
-			group = field.tags?.[0] ?? "";
+		if (hasTags && field.tags && field.tags.length > 0) {
+			group = field.tags[0];
 		} else {
 			const parts = field.path?.split(".") ?? [];
 			group = parts.length > 1 ? parts[0] : "";
