@@ -2,10 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { components } from "../../api/schema";
+import {
+	DeprecatedBadge,
+	ReadOnlyBadge,
+	SensitiveBadge,
+	WriteOnceBadge,
+} from "../../components/FieldBadges";
 import { PendingChangesBar } from "../../components/PendingChangesBar";
 import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
+import { groupFields } from "../../lib/fields";
 import {
 	useApiClient,
 	useConfig,
@@ -52,33 +59,6 @@ function stringToTypedValue(value: string, fieldType: FieldType | undefined): Ty
 		default:
 			return { stringValue: value };
 	}
-}
-
-interface FieldGroup {
-	name: string;
-	fields: SchemaField[];
-}
-
-function groupFields(fields: SchemaField[]): FieldGroup[] {
-	const hasTags = fields.some((f) => f.tags && f.tags.length > 0);
-	const groups = new Map<string, SchemaField[]>();
-	for (const field of fields) {
-		let group: string;
-		if (hasTags && field.tags && field.tags.length > 0) {
-			group = field.tags[0];
-		} else {
-			const parts = field.path?.split(".") ?? [];
-			group = parts.length > 1 ? parts[0] : "";
-		}
-		const list = groups.get(group) ?? [];
-		list.push(field);
-		groups.set(group, list);
-	}
-	const result: FieldGroup[] = [];
-	for (const [name, gf] of groups) {
-		result.push({ name, fields: gf });
-	}
-	return result;
 }
 
 /** Tenant detail page with inline config viewer/editor. */
@@ -468,26 +448,10 @@ function FieldRow({
 							{label("config.locked")}
 						</span>
 					)}
-					{field.deprecated && (
-						<span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-							Deprecated
-						</span>
-					)}
-					{field.readOnly && (
-						<span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-							Read-only
-						</span>
-					)}
-					{field.writeOnce && (
-						<span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-							{hasValue ? "Immutable" : "Write-once"}
-						</span>
-					)}
-					{field.sensitive && (
-						<span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
-							Sensitive
-						</span>
-					)}
+					{field.deprecated && <DeprecatedBadge />}
+					{field.readOnly && <ReadOnlyBadge />}
+					{field.writeOnce && <WriteOnceBadge hasValue={hasValue} />}
+					{field.sensitive && <SensitiveBadge />}
 				</div>
 				{field.description && (
 					<p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{field.description}</p>
