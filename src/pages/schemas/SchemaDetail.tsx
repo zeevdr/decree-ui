@@ -2,8 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { components } from "../../api/schema";
+import {
+	DeprecatedBadge,
+	ReadOnlyBadge,
+	SensitiveBadge,
+	WriteOnceBadge,
+} from "../../components/FieldBadges";
 import { useAuth } from "../../lib/auth";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
+import { groupFields } from "../../lib/fields";
 import { useApiClient, useSchema } from "../../lib/hooks";
 import { CHEVRON_DOWN, CHEVRON_RIGHT } from "../../lib/icons";
 import { label } from "../../lib/labels";
@@ -179,36 +186,6 @@ function SchemaInfoBlock({ info }: { info?: SchemaInfo | null }) {
 
 // --- Fields Section (grouped by first tag) ---
 
-interface FieldGroup {
-	name: string;
-	fields: SchemaField[];
-}
-
-/** Group fields by first tag if present, otherwise by dot-path prefix. */
-function groupFields(fields: SchemaField[]): FieldGroup[] {
-	const hasTags = fields.some((f) => f.tags && f.tags.length > 0);
-	const groups = new Map<string, SchemaField[]>();
-
-	for (const field of fields) {
-		let group: string;
-		if (hasTags) {
-			group = field.tags?.[0] ?? "";
-		} else {
-			const parts = field.path?.split(".") ?? [];
-			group = parts.length > 1 ? parts[0] : "";
-		}
-		const list = groups.get(group) ?? [];
-		list.push(field);
-		groups.set(group, list);
-	}
-
-	const result: FieldGroup[] = [];
-	for (const [name, groupFields] of groups) {
-		result.push({ name, fields: groupFields });
-	}
-	return result;
-}
-
 function FieldsSection({ fields }: { fields: SchemaField[] }) {
 	const groups = groupFields(fields);
 	const hasMultipleGroups = groups.length > 1 || (groups.length === 1 && groups[0].name !== "");
@@ -338,14 +315,6 @@ function TypeBadge({ type }: { type?: SchemaField["type"] }) {
 	);
 }
 
-function DeprecatedBadge() {
-	return (
-		<span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
-			deprecated
-		</span>
-	);
-}
-
 /** Check if a field has expandable details. */
 function fieldHasDetails(field: SchemaField): boolean {
 	return !!(
@@ -426,23 +395,14 @@ function Detail({ label, value, mono }: { label: string; value: string; mono?: b
 }
 
 function FieldFlags({ field }: { field: SchemaField }) {
-	const flags: string[] = [];
-	if (field.readOnly) flags.push("Read-only");
-	if (field.writeOnce) flags.push("Write-once");
-	if (field.sensitive) flags.push("Sensitive");
-
-	if (flags.length === 0) return null;
+	const hasFlags = field.readOnly || field.writeOnce || field.sensitive;
+	if (!hasFlags) return null;
 
 	return (
 		<div className="flex gap-1.5">
-			{flags.map((flag) => (
-				<span
-					key={flag}
-					className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-				>
-					{flag}
-				</span>
-			))}
+			{field.readOnly && <ReadOnlyBadge />}
+			{field.writeOnce && <WriteOnceBadge />}
+			{field.sensitive && <SensitiveBadge />}
 		</div>
 	);
 }
