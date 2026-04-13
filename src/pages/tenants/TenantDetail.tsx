@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { components } from "../../api/schema";
+import { ConfigHistory } from "../../components/ConfigHistory";
 import {
 	DeprecatedBadge,
 	ReadOnlyBadge,
@@ -9,6 +10,7 @@ import {
 	WriteOnceBadge,
 } from "../../components/FieldBadges";
 import { PendingChangesBar } from "../../components/PendingChangesBar";
+import { SlideOver } from "../../components/SlideOver";
 import { TypedInput } from "../../components/TypedInput";
 import { useAuth } from "../../lib/auth";
 import { fieldTypeColor, fieldTypeIcon, fieldTypeLabel } from "../../lib/field-types";
@@ -85,6 +87,7 @@ export function TenantDetail() {
 	const { data: locksData } = useFieldLocks(tid);
 
 	const [editing, setEditing] = useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [pendingChanges, setPendingChanges] = useState<Map<string, string>>(new Map());
 	const [description, setDescription] = useState("");
@@ -276,6 +279,13 @@ export function TenantDetail() {
 							</p>
 						</div>
 						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={() => setShowHistory(true)}
+								className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							>
+								{label("config.history")}
+							</button>
 							{canEditConfig(auth.role) &&
 								(!editing ? (
 									<button
@@ -365,6 +375,14 @@ export function TenantDetail() {
 							</div>
 						))}
 					</div>
+
+					<SlideOver
+						open={showHistory}
+						onClose={() => setShowHistory(false)}
+						title={label("config.history")}
+					>
+						<ConfigHistory tenantId={tid} currentVersion={config?.version} role={auth.role} />
+					</SlideOver>
 
 					{editing && (
 						<PendingChangesBar
