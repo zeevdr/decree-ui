@@ -5,6 +5,8 @@
 
 Web-based admin interface for [OpenDecree](https://github.com/zeevdr/decree) — schema-driven configuration management.
 
+> **Alpha** — This project is under active development. UI, configuration, and behavior may change without notice between versions.
+
 ## Development
 
 ```bash
