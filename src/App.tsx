@@ -9,9 +9,11 @@ import { NotFound } from "./pages/NotFound";
 import { SchemaDetail } from "./pages/schemas/SchemaDetail";
 import { SchemaImport } from "./pages/schemas/SchemaImport";
 import { SchemaList } from "./pages/schemas/SchemaList";
+import { TenantAudit } from "./pages/tenants/TenantAudit";
 import { TenantCreate } from "./pages/tenants/TenantCreate";
 import { TenantDetail } from "./pages/tenants/TenantDetail";
 import { TenantList } from "./pages/tenants/TenantList";
+import { TenantUsage } from "./pages/tenants/TenantUsage";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -42,6 +44,8 @@ export function App() {
 						<Route path="tenants" element={<TenantList />} />
 						<Route path="tenants/create" element={<TenantCreate />} />
 						<Route path="tenants/:id" element={<TenantDetail />} />
+						<Route path="tenants/:id/audit" element={<TenantAudit />} />
+						<Route path="tenants/:id/usage" element={<TenantUsage />} />
 						<Route path="*" element={<NotFound />} />
 					</Route>
 				</Routes>
