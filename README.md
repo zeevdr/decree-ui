@@ -1,3 +1,7 @@
+> **This project has moved to [opendecree/decree-ui](https://github.com/opendecree/decree-ui).** This repository is archived and read-only.
+
+---
+
 # OpenDecree Admin GUI
 
 [![CI](https://github.com/zeevdr/decree-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/zeevdr/decree-ui/actions/workflows/ci.yml)
